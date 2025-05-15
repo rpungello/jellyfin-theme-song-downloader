@@ -1,4 +1,6 @@
 import os
+import urllib.request
+from urllib.error import HTTPError
 
 from jellyfin_apiclient_python import JellyfinClient
 from jellyfin_apiclient_python.exceptions import HTTPException
@@ -31,7 +33,10 @@ def download_theme_song(show: dict):
         theme_url = f"http://tvthemes.plexapp.com/{show['ProviderIds']['Tvdb']}.mp3"
         if os.path.exists(os.path.dirname(theme_path)):
             print(f"Downloading theme song for {show['Name']}.")
-            os.system(f"wget -O {theme_path} {theme_url}")
+            try:
+                urllib.request.urlretrieve(theme_url, theme_path)
+            except HTTPError:
+                print(f"No theme song found for {show['Name']}.")
         else:
             print(f"Directory does not exist for {show['Name']}, skipping download.")
 
