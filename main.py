@@ -7,7 +7,7 @@ from jellyfin_apiclient_python.exceptions import HTTPException
 
 client = JellyfinClient()
 client.config.data['app.name']='Theme Song Downloader'
-client.config.data['app.version']='0.1.0'
+client.config.data['app.version']=os.environ['APP_VERSION']
 client.config.data['auth.ssl'] = False
 client.authenticate({
     "Servers": [
