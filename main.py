@@ -1,16 +1,44 @@
-# This is a sample Python script.
+import os
 
-# Press <no shortcut> to execute it or replace it with your code.
-# Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
+from jellyfin_apiclient_python import JellyfinClient
+from jellyfin_apiclient_python.exceptions import HTTPException
+
+client = JellyfinClient()
+client.config.data['app.name']='Theme Song Downloader'
+client.config.data['app.version']='0.1.0'
+client.config.data['auth.ssl'] = False
+client.authenticate({
+    "Servers": [
+        {
+            "address": os.environ['JELLYFIN_ADDRESS'],
+            "AccessToken": os.environ['JELLYFIN_TOKEN'],
+            "UserId": os.environ['JELLYFIN_USER_ID']
+        }
+    ]
+}, discover=False)
+
+try:
+    shows = client.jellyfin.user_items(params={
+        "parentId": os.environ['JELLYFIN_SHOWS_ID'],
+    })
+except HTTPException as e:
+    print('Unable to connect to Jellyfin server. Did you set the environment variables correctly?')
+    exit()
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press ⌘F8 to toggle the breakpoint.
+def download_theme_song(show: dict):
+        theme_path = f"/mnt/shows/{os.path.basename(show['Path'])}/theme.mp3"
+        theme_url = f"http://tvthemes.plexapp.com/{show['ProviderIds']['Tvdb']}.mp3"
+        if os.path.exists(os.path.dirname(theme_path)):
+            print(f"Downloading theme song for {show['Name']}.")
+            os.system(f"wget -O {theme_path} {theme_url}")
+        else:
+            print(f"Directory does not exist for {show['Name']}, skipping download.")
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+for record in shows['Items']:
+    song = client.jellyfin.get_items_theme_song(record['Id'])
+    if song['TotalRecordCount'] == 0:
+        info = client.jellyfin.get_item(record['Id'])
+        if 'ProviderIds' in info and 'Tvdb' in info['ProviderIds']:
+            download_theme_song(info)
